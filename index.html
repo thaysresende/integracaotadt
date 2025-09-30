@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Adivinha Quem? — Dinâmica</title>
+  <style>
+    :root{
+      --bg:#f1ebec;        /* fundo da página */
+      --ink:#222;          /* texto principal */
+      --muted:#666;        /* texto auxiliar */
+      --accent:#2b6cb0;    /* foco */
+      --ok:#0f9d58;        /* sucesso */
+      --warn:#c94c29;      /* aviso */
+      --card:#ffffff;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--ink);
+      font:16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      display:grid; place-items:center;
+    }
+    .wrap{ width:min(860px, 96vw); margin:32px auto; }
+    .card{ background:var(--bg); border-radius:28px; padding:28px 24px 36px; display:grid; justify-items:center; box-shadow:0 0 0 1px #e6dfe1 inset; gap:14px }
+
+    /* Imagem do dia */
+    .hero{ width:min(480px, 92vw); aspect-ratio:4/5; border-radius:24px; overflow:hidden; display:block; position:relative; background:#dfe7f5; border:1px solid #d4ced0 }
+    .hero img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover }
+
+    /* Cabeçalho */
+    .title{ font-weight:800; font-size:22px; letter-spacing:.2px; margin:6px 0 2px }
+    .sub{ color:var(--muted); font-size:14px; margin-top:-6px }
+
+    /* Form */
+    form{ width:min(560px, 94vw); display:grid; justify-items:center; gap:10px }
+    label{ font-size:18px; font-weight:600 }
+    .input{ width:100%; border-radius:999px; padding:12px 18px; border:2px solid #c9c3c5; outline:none; font-size:16px; background:#fff; box-shadow:0 2px 0 #bdb6b9; transition:border-color .15s, box-shadow .15s }
+    .input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent) }
+    .row{ width:100%; display:grid; grid-template-columns:1fr 1fr; gap:10px }
+
+    .btn{ border:2px solid #c9c3c5; background:#fff; border-radius:999px; padding:10px 22px; font-weight:700; font-size:16px; cursor:pointer; box-shadow:0 2px 0 #bdb6b9 }
+    .btn:hover{ filter:brightness(.98) }
+    .btn:active{ transform:translateY(1px) }
+
+    .helper{ font-size:13px; color:var(--muted); margin-top:2px }
+    .ok{ color:var(--ok) }
+    .warn{ color:var(--warn) }
+
+    /* Leaderboard */
+    .board{ width:min(560px, 94vw); background:var(--card); border:1px solid #e7e1e3; border-radius:16px; padding:10px 14px }
+    .board h3{ margin:4px 0 8px; font-size:16px }
+    .board ol{ margin:0; padding-left:20px }
+
+    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:8px }
+    .disclaimer{ font-size:13px; background:#fff; border:1px solid #e7e1e3; border-radius:14px; padding:10px 14px; width:min(560px, 94vw) }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card" aria-label="Dinâmica Adivinha Quem?">
+      <figure class="hero" aria-hidden="true">
+        <!-- A imagem pode vir do parâmetro ?img=... ou do endpoint /round -->
+        <img id="fotoDia" alt="Foto do dia (criança)" />
+      </figure>
+
+      <div class="title">Adivinha quem é?</div>
+      <div class="sub">Rodada <span id="roundId">—</span> • <span id="infoEncerramento"></span></div>
+
+      <form id="gameForm" novalidate>
+        <label for="palpite">resposta:</label>
+        <input class="input" type="text" id="palpite" name="palpite" placeholder="Quem é na foto?" required />
+        <label for="nome">seu nome:</label>
+        <div class="row">
+          <input class="input" type="text" id="nome" name="nome" placeholder="Ex.: Ana" required />
+          <input class="input" type="text" id="apelido" name="apelido" placeholder="Apelido p/ placar (opcional)" />
+        </div>
+        <div class="toolbar">
+          <button class="btn" type="submit">enviar palpite</button>
+          <button id="btnPlacarRodada" class="btn" type="button">placar da rodada</button>
+          <button id="btnPlacarGeral" class="btn" type="button">placar geral</button>
+        </div>
+        <p id="msg" class="helper" role="status" aria-live="polite"></p>
+      </form>
+
+      <div class="disclaimer">
+        Regras: primeiras <strong>5 respostas corretas valem 5 pts</strong>, demais corretas <strong>3 pts</strong>, e <strong>participação 1 pt</strong>. Um palpite por rodada por pessoa.
+      </div>
+
+      <div id="leaderboard" class="board" hidden>
+        <h3 id="placarTitulo">Placar</h3>
+        <ol id="ranking"></ol>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /*** CONFIGURE AQUI ***/
+    const API_BASE = 'https://script.google.com/macros/s/SEU_DEPLOY_ID/exec'; // troque pelo seu URL /exec do Apps Script
+
+    /*** HELPERS ***/
+    const $ = (id)=> document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+    const todayLocal = ()=>{
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${dd}`;
+    };
+
+    const roundId = params.get('r') || todayLocal();
+    let imageUrl = params.get('img') || '';
+
+    const fotoEl = $('fotoDia');
+    const roundEl = $('roundId');
+    const infoEncerramento = $('infoEncerramento');
+    const msg  = $('msg');
+    const boardBox = $('leaderboard');
+    const boardTitle = $('placarTitulo');
+    const boardOl = $('ranking');
+
+    roundEl.textContent = roundId;
+
+    // Carrega dados da rodada (somente imagem/encerramento). OBS: o backend atual retorna também 'answer'.
+    async function loadRound(){
+      try{
+        if(imageUrl){ fotoEl.src = imageUrl; return; }
+        const res = await fetch(`${API_BASE}?route=round&r=${encodeURIComponent(roundId)}`);
+        const j = await res.json();
+        if(!res.ok) throw new Error(j.error||'Falha ao carregar rodada');
+        if(j.imageUrl) fotoEl.src = j.imageUrl;
+        if(j.closeTime) infoEncerramento.textContent = `Encerramento às ${j.closeTime}`;
+      }catch(err){
+        // fallback: imagem neutra
+        fotoEl.alt = 'Imagem indisponível';
+        infoEncerramento.textContent = '';
+      }
+    }
+
+    // Envio do palpite
+    $('gameForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const palpite = $('palpite').value.trim();
+      const nome    = $('nome').value.trim();
+      const apelido = $('apelido').value.trim();
+      if(!palpite || !nome){ msg.textContent = 'Preencha "resposta" e "seu nome"'; return; }
+      msg.textContent = 'Enviando…';
+      try{
+        const res = await fetch(`${API_BASE}?route=submit`,{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ roundId, name:nome, alias:apelido, guess:palpite })
+        });
+        const j = await res.json();
+        if(!res.ok) throw new Error(j.error||'Falha ao enviar');
+        msg.innerHTML = `✅ ${j.message}`;
+        e.target.reset();
+      }catch(err){ msg.innerHTML = `❌ <span class="warn">${err.message}</span>`; }
+    });
+
+    // Placar da rodada
+    $('btnPlacarRodada').addEventListener('click', async ()=>{
+      boardBox.hidden = false; boardTitle.textContent = `Placar — ${roundId}`; boardOl.innerHTML = '<li class="helper">Carregando…</li>';
+      try{
+        const res = await fetch(`${API_BASE}?route=leaderboard&round=${encodeURIComponent(roundId)}`);
+        const j = await res.json();
+        if(!res.ok) throw new Error(j.error||'Falha ao carregar placar');
+        renderBoard(j.rows);
+      }catch(err){ boardOl.innerHTML = `<li class="warn">${err.message}</li>`; }
+    });
+
+    // Placar geral
+    $('btnPlacarGeral').addEventListener('click', async ()=>{
+      boardBox.hidden = false; boardTitle.textContent = 'Placar — Geral'; boardOl.innerHTML = '<li class="helper">Carregando…</li>';
+      try{
+        const res = await fetch(`${API_BASE}?route=leaderboard`);
+        const j = await res.json();
+        if(!res.ok) throw new Error(j.error||'Falha ao carregar placar');
+        renderBoard(j.rows);
+      }catch(err){ boardOl.innerHTML = `<li class="warn">${err.message}</li>`; }
+    });
+
+    function renderBoard(rows){
+      if(!rows || !rows.length){ boardOl.innerHTML = '<li>Ninguém pontuou ainda 🙃</li>'; return; }
+      boardOl.innerHTML = rows.map(r=>`<li><strong>${escapeHtml(r.name)}</strong> — ${r.points} pts</li>`).join('');
+    }
+
+    function escapeHtml(s){
+      return String(s||'').replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+    }
+
+    loadRound();
+  </script>
+</body>
+</html>
