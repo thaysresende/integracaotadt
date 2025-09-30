@@ -95,10 +95,11 @@
   </main>
 
   <script>
+    /*** CONFIGURE AQUI ***/
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbxmj6eK_98fGKeaypcZFa5PspJLToQuZTV9oEz5nyD5vLdruu77Xwj52sR1a--8qapKlg/exec';
 
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbyZ4_N4O9P5ZEd135ZuB5x-T3lxMXTPX2xfh5CkSi1HcvEIqHIlEoopg4W5foc7AnJlKg/exec';
 
-
+    /*** HELPERS ***/
     const $ = (id)=> document.getElementById(id);
     const params = new URLSearchParams(location.search);
     const todayLocal = ()=>{
@@ -138,7 +139,7 @@
       }
     }
 
-    // Envio do palpite
+    // Envio do palpite — sem CORS preflight: usa application/x-www-form-urlencoded
     $('gameForm').addEventListener('submit', async (e)=>{
       e.preventDefault();
       const palpite = $('palpite').value.trim();
@@ -147,9 +148,11 @@
       if(!palpite || !nome){ msg.textContent = 'Preencha "resposta" e "seu nome"'; return; }
       msg.textContent = 'Enviando…';
       try{
+        const body = new URLSearchParams({ roundId, name:nome, alias:apelido, guess:palpite });
         const res = await fetch(`${API_BASE}?route=submit`,{
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ roundId, name:nome, alias:apelido, guess:palpite })
+          method:'POST',
+          headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8' },
+          body
         });
         const j = await res.json();
         if(!res.ok) throw new Error(j.error||'Falha ao enviar');
