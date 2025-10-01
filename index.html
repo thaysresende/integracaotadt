@@ -189,12 +189,35 @@
     const trocar = $('trocar');
 
     const inputGuess = $('palpite');
+    const submitBtn = document.querySelector('#gameForm button[type="submit"]');
     const sugg = $('sugg');
 
     roundEl.textContent = `#${roundId}`;
 
-    // ---------- Login por seleção ----------
+    // ---------- Cache de palpite (por rodada e por jogador) ----------
     const STORAGE_KEY = 'aq_user_name';
+    const GUESS_KEY = (rid, name) => `aq_guess:${rid}:${norm(name)}`;
+    function loadGuessCache(){
+      const name = $('nome').value.trim(); if(!name) return null;
+      try{ return JSON.parse(localStorage.getItem(GUESS_KEY(roundId, name)) || 'null'); }catch{ return null; }
+    }
+    function saveGuessCache(guess){
+      const name = $('nome').value.trim(); if(!name) return;
+      localStorage.setItem(GUESS_KEY(roundId, name), JSON.stringify({guess, ts: Date.now()}));
+    }
+    function applyGuessUI(cache){
+      if(!cache) return;
+      inputGuess.value = cache.guess || '';
+      inputGuess.disabled = true;
+      submitBtn.disabled = true;
+      const when = cache.ts ? new Date(cache.ts).toLocaleString('pt-BR') : '';
+      msg.innerHTML = `✔️ Você já enviou seu palpite <strong>${escapeHtml(cache.guess||'')}</strong> ${when?`em ${when}`:''}.`;
+    }
+    function resetGuessUI(){
+      inputGuess.disabled = false; submitBtn.disabled = false; msg.textContent='';
+    }
+
+    // ---------- Login por seleção ----------
     function openPicker(){ modal.hidden = false; renderList(''); search.value=''; search.focus(); }
     function closePicker(){ modal.hidden = true; }
 
@@ -215,6 +238,8 @@
       who.textContent = name;
       whoBox.hidden = false;
       closePicker();
+      const cache = loadGuessCache();
+      if(cache) applyGuessUI(cache); else resetGuessUI();
     }
 
     search.addEventListener('input', ()=> renderList(search.value));
@@ -222,7 +247,7 @@
 
     const saved = localStorage.getItem(STORAGE_KEY);
     if(saved && COLABS.includes(saved)){
-      selectName(saved); // preenche e oculta modal
+      selectName(saved);
     } else {
       openPicker();
       renderList('');
@@ -278,9 +303,17 @@
         });
         const j = await res.json();
         if(!res.ok) throw new Error(j.error||'Falha ao enviar');
-        msg.innerHTML = `✅ ${j.message}`;
-        e.target.reset();
-      }catch(err){ msg.innerHTML = `❌ <span class="warn">${err.message}</span>`; }
+        // salva cache e bloqueia UI
+        saveGuessCache(palpite);
+        applyGuessUI({guess: palpite, ts: Date.now()});
+      }catch(err){
+        // se o backend disser que já respondeu, respeita e grava cache
+        if(/já respondeu/i.test(err.message||'')){
+          saveGuessCache(palpite);
+          applyGuessUI({guess: palpite, ts: Date.now()});
+        }
+        msg.innerHTML = `❌ <span class="warn">${err.message}</span>`;
+      }
     });
 
     // ---------- Placar ----------
