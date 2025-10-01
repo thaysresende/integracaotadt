@@ -6,13 +6,14 @@
   <title>Adivinha Quem? — Dinâmica</title>
   <style>
     :root{
-      --bg:#f1ebec;        /* fundo da página */
+      --bg:#f7f4f5;        /* fundo da página */
       --ink:#222;          /* texto principal */
       --muted:#666;        /* texto auxiliar */
       --accent:#2b6cb0;    /* foco */
       --ok:#0f9d58;        /* sucesso */
       --warn:#c94c29;      /* aviso */
       --card:#ffffff;
+      --line:#dcd6d8;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -33,84 +34,143 @@
     .sub{ color:var(--muted); font-size:14px; margin-top:-6px }
 
     /* Form */
-    form{ width:min(560px, 94vw); display:grid; justify-items:center; gap:10px }
+    form{ width:min(620px, 96vw); display:grid; justify-items:center; gap:10px }
     label{ font-size:18px; font-weight:600 }
+
+    /* Campo padrão */
     .input{ width:100%; border-radius:999px; padding:12px 18px; border:2px solid #c9c3c5; outline:none; font-size:16px; background:#fff; box-shadow:0 2px 0 #bdb6b9; transition:border-color .15s, box-shadow .15s }
     .input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent) }
-    .row{ width:100%; display:grid; grid-template-columns:1fr 1fr; gap:10px }
+
+    /* Linha com input + botão ao lado */
+    .row-inline{ width:100%; display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center }
 
     .btn{ border:2px solid #c9c3c5; background:#fff; border-radius:999px; padding:10px 22px; font-weight:700; font-size:16px; cursor:pointer; box-shadow:0 2px 0 #bdb6b9 }
     .btn:hover{ filter:brightness(.98) }
     .btn:active{ transform:translateY(1px) }
+    .link{ font-size:13px; color:var(--accent); background:none; border:none; cursor:pointer; text-decoration:underline }
 
     .helper{ font-size:13px; color:var(--muted); margin-top:2px }
     .ok{ color:var(--ok) }
     .warn{ color:var(--warn) }
 
     /* Leaderboard */
-    .board{ width:min(560px, 94vw); background:var(--card); border:1px solid #e7e1e3; border-radius:16px; padding:10px 14px }
+    .board{ width:min(620px, 96vw); background:var(--card); border:1px solid #e7e1e3; border-radius:16px; padding:10px 14px }
     .board h3{ margin:4px 0 8px; font-size:16px }
     .board ol{ margin:0; padding-left:20px }
 
     .toolbar{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:8px }
-    .disclaimer{ font-size:13px; background:#fff; border:1px solid #e7e1e3; border-radius:14px; padding:10px 14px; width:min(560px, 94vw) }
+
+    /* Regras (melhorado) */
+    .rules{ font-size:14px; background:#fff; border:1px solid #e7e1e3; border-radius:14px; padding:12px 14px; width:min(620px, 96vw) }
+    .rules h4{ margin:4px 0 8px; font-size:15px }
+    .rules ul{ margin:0; padding-left:20px }
+
+    /* --- Modal de seleção de colaborador --- */
+    .modal{ position:fixed; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.25); padding:24px; z-index:50 }
+    .modal[hidden]{ display:none }
+    .picker{ width:min(640px, 92vw); background:#fff; border:1px solid var(--line); border-radius:20px; padding:28px 24px; display:grid; gap:12px; justify-items:center }
+    .picker h2{ margin:0 0 10px; font-size:18px; text-transform:uppercase; letter-spacing:.08em }
+    .search{ width:100%; max-width:420px; border-radius:999px; padding:12px 18px; border:2px solid #000; outline:none; font-size:16px }
+    .list{ width:100%; max-width:520px; border:1px solid var(--line); border-radius:14px; max-height:280px; overflow:auto; padding:6px; background:var(--card) }
+    .item{ padding:10px 12px; border-radius:10px; cursor:pointer }
+    .item:hover, .item.active{ background:#f1f5ff; }
+    .empty{ padding:10px; color:var(--muted); font-size:14px; text-align:center }
+
+    .who{ font-size:14px; color:var(--muted) }
+
+    /* Combo de palpite (auto-sugestões) */
+    .combo{ position:relative }
+    .sugg{ position:absolute; top:100%; left:0; right:0; z-index:10; background:#fff; border:1px solid var(--line); border-radius:12px; max-height:240px; overflow:auto; padding:6px; margin-top:6px }
+    .sugg[hidden]{ display:none }
+    .sugg .sitem{ padding:10px 12px; border-radius:8px; cursor:pointer }
+    .sugg .sitem:hover, .sugg .sitem.active{ background:#f1f5ff }
   </style>
 </head>
 <body>
+  <!-- Modal de seleção do colaborador -->
+  <div id="modal" class="modal" hidden>
+    <div class="picker">
+      <h2>SEU NOME:</h2>
+      <input id="search" class="search" type="text" placeholder="Digite para filtrar…" autofocus>
+      <div id="list" class="list" role="listbox" aria-label="Colaboradores"></div>
+      <p class="helper">Selecione seu nome na lista. Ficará salvo neste navegador para as próximas visitas.</p>
+    </div>
+  </div>
+
   <main class="wrap">
     <section class="card" aria-label="Dinâmica Adivinha Quem?">
       <figure class="hero" aria-hidden="true">
         <!-- A imagem pode vir do parâmetro ?img=... ou do endpoint /round -->
-        <img id="fotoDia" alt="Foto do dia (criança)" />
+        <img id="fotoDia" alt="Foto da rodada" />
       </figure>
 
       <div class="title">Adivinha quem é?</div>
-      <div class="sub">Rodada <span id="roundId">—</span> • <span id="infoEncerramento"></span></div>
+      <div class="sub">Rodada <span id="roundId">#</span> • <span id="infoEncerramento"></span></div>
 
       <form id="gameForm" novalidate>
-        <label for="palpite">resposta:</label>
-        <input class="input" type="text" id="palpite" name="palpite" placeholder="Quem é na foto?" required />
-        <label for="nome">seu nome:</label>
-        <div class="row">
-          <input class="input" type="text" id="nome" name="nome" placeholder="Ex.: Ana" required />
-          <input class="input" type="text" id="apelido" name="apelido" placeholder="Apelido p/ placar (opcional)" />
-        </div>
-        <div class="toolbar">
+        <label for="palpite">selecione quem é na foto:</label>
+        <div class="row-inline">
+          <!-- campo de palpite com auto-sugestões baseadas na mesma lista de colaboradores -->
+          <div class="combo" style="width:100%">
+            <input class="input" type="text" id="palpite" name="palpite" placeholder="Comece a digitar um nome…" autocomplete="off" required />
+            <div id="sugg" class="sugg" hidden></div>
+          </div>
           <button class="btn" type="submit">enviar palpite</button>
-          <button id="btnPlacarRodada" class="btn" type="button">placar da rodada</button>
-          <button id="btnPlacarGeral" class="btn" type="button">placar geral</button>
         </div>
+
+        <!-- Campos ocultos com a identidade do jogador -->
+        <input type="hidden" id="nome" name="nome" />
+        <input type="hidden" id="apelido" name="apelido" />
+        <div class="who" id="whoBox" hidden>
+          Jogando como <strong id="who"></strong> • <button id="trocar" class="link" type="button">trocar</button>
+        </div>
+
         <p id="msg" class="helper" role="status" aria-live="polite"></p>
       </form>
 
-      <div class="disclaimer">
-        Regras: primeiras <strong>5 respostas corretas valem 5 pts</strong>, demais corretas <strong>3 pts</strong>, e <strong>participação 1 pt</strong>. Um palpite por rodada por pessoa.
+      <div class="rules">
+        <h4>Como funciona</h4>
+        <ul>
+          <li>Escolha seu nome na primeira tela. Ele ficará salvo no seu navegador.</li>
+          <li>Veja a foto da <strong>Rodada #N</strong> e selecione na lista quem você acha que é.</li>
+          <li><strong>Um palpite por rodada</strong> por pessoa.</li>
+        </ul>
+        <h4>Pontuação</h4>
+        <ul>
+          <li><strong>5 pts</strong> – para as <strong>5 primeiras respostas corretas</strong> da rodada.</li>
+          <li><strong>3 pts</strong> – para as demais respostas corretas.</li>
+          <li><strong>1 pt</strong> – participação (se errou).</li>
+        </ul>
       </div>
 
       <div id="leaderboard" class="board" hidden>
         <h3 id="placarTitulo">Placar</h3>
         <ol id="ranking"></ol>
       </div>
+
+      <div class="toolbar">
+        <button id="btnPlacarRodada" class="btn" type="button">placar da rodada</button>
+        <button id="btnPlacarGeral" class="btn" type="button">placar geral</button>
+      </div>
     </section>
   </main>
 
   <script>
     /*** CONFIGURE AQUI ***/
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbxmj6eK_98fGKeaypcZFa5PspJLToQuZTV9oEz5nyD5vLdruu77Xwj52sR1a--8qapKlg/exec';
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbxmj6eK_98fGKeaypcZFa5PspJLToQuZTV9oEz5nyD5vLdruu77Xwj52sR1a--8qapKlg/exec'; // troque pelo seu URL /exec do Apps Script
 
+    /** Lista de colaboradores */
+    const COLABS = [
+      'Aguinaldo da Rosa Moggi','Alessandro de Oliveira','Alex Portz Ziantonio','Alexsander Barbosa Siqueira','Alexsandro Rodrigues Pinheiro','Allan Presotto','Amanda Polli','Amos Hsieh Carneiro Garcia','Ana Julia Santiago de Oliveira','Andre Domingos Vasconcelos','Andre Mai Velasco','Bianca Lahm Gomes','Bouchra Assad Akl','Carlos Eduardo Savio Penteado','Carlos Henrique Leite','Christian Carvalho Guimaraes Monteiro','Cinthia Rodrigues Da Silva','Claudio Henrique Desordi Barbosa','Danielle Nogueira Bernartt','Davi Eduardo Nunes','Davis Rhegers Camargo dos Santos','Deivid Marlon Fernandes da Costa','Denise Liesenfeld','Eduarda Gonçalves da Cunha','Eduardo Mendes Pereira','Everton Golle','Felipe Theodoro Guimaraes','Flavio Canuto de Sousa','Francisco Machado Becker','Frank Jose Cedeno Gonzalez','Gabriel Belo Dias','Gabriel Casanova Baldissera','Gabriel Ferreira de Souza','Gabriel Jose Trojack','Gabriele Oliveira Nicolli','Georgi Mateus Pazini Acordi','Gilson Dias de Oliveira','Gustavo Eduardo Muller Francisquina','Gustavo Rafael de Lima','Gustavo Souza','Gustavo Viana Bastos','Heber Miguel dos Santos','Helder Vinicius Scherer','Henrique Benitez de Freitas','Igor Leandro Patricio Vargas','Israel Furtado Santos Souza','Jean Felipe Moschen Buss','Joao Vitor Damaceno','Joao Vitor Lucas Pinotti','Jonatas Eduardo Stein','Jose Alberto Pereira dos Santos','Kame Haung Zhu','Katherine Rojas Salazar','Kaue Sanches Goncalves','Layon Luciano Lucena Alves','Leandro Vinicius da Mata Silva','Leonardo Augusto Antunes','Lucas Matheus Spancerski','Lucas Medeiros Reinaldet dos Santos','Lucas Sampaio Mantuan','Marcelo Augusto Valliati','Marcos Cesar dos Santos','Marcos Vinicius Johann','Matheus da Silva Cadini','Matheus Riquelme Gonsalves','Mauricio Machado Lourenco','Michael Tiago Barroso','Milena Lucas dos Santos','Naelton Fonseca da Silva','Nata Rafael Cruz de Jesus','Natania Pereira Inez','Neivaldo Marcos Dias De Moraes Junior','Nicolas Iunovich Konig','Patricia Rodrigues','Paula Beatriz Araujo Leao Cunha','Paullyanne Portela de Farias','Rafael Dezordi','Rafhael Pereira Zrenner','Raianny Proenca de Camargo de Oliveira','Roger William Silva Benitez','Sheila Carolina Souza Arnold','Thays Resende Achucarro','Valeria Nunes Dos Santos','Victor Gabriel da Fonseca Ferrari','Vinicius Gabriel Aquino Ferreira','Vitor Gabriel Marques Quadros','Vitor Ramiro Borges','Willbur Rogers de Souza'
+    ];
 
     /*** HELPERS ***/
     const $ = (id)=> document.getElementById(id);
     const params = new URLSearchParams(location.search);
-    const todayLocal = ()=>{
-      const d = new Date();
-      const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,'0');
-      const dd = String(d.getDate()).padStart(2,'0');
-      return `${y}-${m}-${dd}`;
-    };
+    const norm = (s)=> String(s||'').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
 
-    const roundId = params.get('r') || todayLocal();
+    // Rodada numérica (ex.: ?r=12). Default = 1
+    const roundId = params.get('r') || '1';
     let imageUrl = params.get('img') || '';
 
     const fotoEl = $('fotoDia');
@@ -121,9 +181,71 @@
     const boardTitle = $('placarTitulo');
     const boardOl = $('ranking');
 
-    roundEl.textContent = roundId;
+    const modal = $('modal');
+    const search = $('search');
+    const list = $('list');
+    const whoBox = $('whoBox');
+    const who = $('who');
+    const trocar = $('trocar');
 
-    // Carrega dados da rodada (somente imagem/encerramento). OBS: o backend atual retorna também 'answer'.
+    const inputGuess = $('palpite');
+    const sugg = $('sugg');
+
+    roundEl.textContent = `#${roundId}`;
+
+    // ---------- Login por seleção ----------
+    const STORAGE_KEY = 'aq_user_name';
+    function openPicker(){ modal.hidden = false; renderList(''); search.value=''; search.focus(); }
+    function closePicker(){ modal.hidden = true; }
+
+    function renderList(q){
+      const qn = norm(q);
+      const rows = COLABS.filter(n => !qn || norm(n).includes(qn));
+      if(!rows.length){ list.innerHTML = `<div class="empty">Nenhum nome encontrado.</div>`; return; }
+      list.innerHTML = rows.map(n => `<div class="item" role="option" tabindex="0" data-name="${n.replace(/"/g,'&quot;')}">${n}</div>`).join('');
+      [...list.querySelectorAll('.item')].forEach(el=>{
+        el.addEventListener('click', ()=> selectName(el.dataset.name));
+        el.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter'){ selectName(el.dataset.name);} });
+      });
+    }
+
+    function selectName(name){
+      localStorage.setItem(STORAGE_KEY, name);
+      $('nome').value = name; // hidden field
+      who.textContent = name;
+      whoBox.hidden = false;
+      closePicker();
+    }
+
+    search.addEventListener('input', ()=> renderList(search.value));
+    trocar.addEventListener('click', ()=>{ localStorage.removeItem(STORAGE_KEY); openPicker(); });
+
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if(saved && COLABS.includes(saved)){
+      selectName(saved); // preenche e oculta modal
+    } else {
+      openPicker();
+      renderList('');
+    }
+
+    // ---------- Auto-sugestões no campo de palpite ----------
+    function renderSugg(q){
+      const qn = norm(q);
+      const rows = COLABS.filter(n => !qn || norm(n).includes(qn)).slice(0,50);
+      if(!rows.length){ sugg.innerHTML = '<div class="empty">Nada encontrado</div>'; sugg.hidden = false; return; }
+      sugg.innerHTML = rows.map(n=>`<div class="sitem" tabindex="0" data-name="${n.replace(/"/g,'&quot;')}">${n}</div>`).join('');
+      sugg.hidden = false;
+      [...sugg.querySelectorAll('.sitem')].forEach(el=>{
+        el.addEventListener('click', ()=>{ inputGuess.value = el.dataset.name; sugg.hidden = true; });
+        el.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter'){ inputGuess.value = el.dataset.name; sugg.hidden = true; inputGuess.focus(); } });
+      });
+    }
+
+    inputGuess.addEventListener('focus', ()=> renderSugg(inputGuess.value));
+    inputGuess.addEventListener('input', ()=> renderSugg(inputGuess.value));
+    document.addEventListener('click', (e)=>{ if(!e.target.closest('.combo')) sugg.hidden = true; });
+
+    // ---------- Dados da rodada ----------
     async function loadRound(){
       try{
         if(imageUrl){ fotoEl.src = imageUrl; return; }
@@ -133,26 +255,26 @@
         if(j.imageUrl) fotoEl.src = j.imageUrl;
         if(j.closeTime) infoEncerramento.textContent = `Encerramento às ${j.closeTime}`;
       }catch(err){
-        // fallback: imagem neutra
         fotoEl.alt = 'Imagem indisponível';
         infoEncerramento.textContent = '';
       }
     }
 
-    // Envio do palpite — sem CORS preflight: usa application/x-www-form-urlencoded
+    // ---------- Submit sem pré-flight (CORS) ----------
     $('gameForm').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      const palpite = $('palpite').value.trim();
+      const palpite = inputGuess.value.trim();
       const nome    = $('nome').value.trim();
-      const apelido = $('apelido').value.trim();
-      if(!palpite || !nome){ msg.textContent = 'Preencha "resposta" e "seu nome"'; return; }
+      if(!nome){ msg.textContent = 'Selecione seu nome para jogar.'; openPicker(); return; }
+      if(!palpite){ msg.textContent = 'Selecione um nome na lista.'; inputGuess.focus(); return; }
+      if(!COLABS.includes(palpite)){
+        msg.textContent = 'Use um nome da lista para o palpite.'; inputGuess.focus(); return;
+      }
       msg.textContent = 'Enviando…';
       try{
-        const body = new URLSearchParams({ roundId, name:nome, alias:apelido, guess:palpite });
+        const body = new URLSearchParams({ roundId, name:nome, alias:'', guess:palpite });
         const res = await fetch(`${API_BASE}?route=submit`,{
-          method:'POST',
-          headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8' },
-          body
+          method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8' }, body
         });
         const j = await res.json();
         if(!res.ok) throw new Error(j.error||'Falha ao enviar');
@@ -161,9 +283,9 @@
       }catch(err){ msg.innerHTML = `❌ <span class="warn">${err.message}</span>`; }
     });
 
-    // Placar da rodada
+    // ---------- Placar ----------
     $('btnPlacarRodada').addEventListener('click', async ()=>{
-      boardBox.hidden = false; boardTitle.textContent = `Placar — ${roundId}`; boardOl.innerHTML = '<li class="helper">Carregando…</li>';
+      boardBox.hidden = false; boardTitle.textContent = `Placar — Rodada #${roundId}`; boardOl.innerHTML = '<li class="helper">Carregando…</li>';
       try{
         const res = await fetch(`${API_BASE}?route=leaderboard&round=${encodeURIComponent(roundId)}`);
         const j = await res.json();
@@ -172,7 +294,6 @@
       }catch(err){ boardOl.innerHTML = `<li class="warn">${err.message}</li>`; }
     });
 
-    // Placar geral
     $('btnPlacarGeral').addEventListener('click', async ()=>{
       boardBox.hidden = false; boardTitle.textContent = 'Placar — Geral'; boardOl.innerHTML = '<li class="helper">Carregando…</li>';
       try{
