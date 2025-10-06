@@ -202,19 +202,23 @@
       return data;
     }
 
+
 async function submitGuess({ name, guess }) {
+  const fd = new FormData();
+  fd.append('name', name);
+  fd.append('guess', guess);
   const res = await fetch(`${API_BASE}?route=submit`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, guess })   // <-- sem roundId
+    body: fd
   });
 
-  // Apps Script sempre responde 200, então checamos "error" no JSON
+  const text = await res.text();
   let data = {};
-  try { data = await res.json(); } catch {}
+  try { data = JSON.parse(text) } catch {}
   if (data.error) throw new Error(data.error);
-  return data;  // { ok, roundId, isCorrect, points }
+  return data; // { ok, roundId, isCorrect, points }
 }
+
 
     async function fetchCollaborators(){
       const res=await fetch(COLABS_URL,{cache:'no-store'});
