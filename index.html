@@ -17,13 +17,19 @@
     .muted a{color:#374151;text-decoration:underline;cursor:pointer}
     form{margin-top:14px}
     .row{display:flex;gap:10px;justify-content:center}
-    input[type="text"]{width:520px;max-width:72vw;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;font-size:14.5px;outline:0;transition:box-shadow .15s,border-color .15s}
+
+    input[type="text"]{
+      width:520px;max-width:72vw;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;font-size:14.5px;
+      outline:0;transition:box-shadow .15s,border-color .15s
+    }
     input[type="text"]:focus{border-color:var(--brand);box-shadow:0 0 0 4px var(--ring)}
     button{padding:12px 18px;border-radius:10px;border:0;background:var(--brand);color:#fff;font-weight:700;cursor:pointer}
     button:disabled{opacity:.55;cursor:not-allowed}
     .sent{margin-top:10px;color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:6px;justify-content:center}
     .sent.ok{color:var(--ok)}
     .rules{margin-top:28px;font-size:12.5px;color:#374151}
+
+    /* Modal */
     .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
     .modal{width:680px;max-width:95vw;background:#fff;border-radius:16px;padding:18px;box-shadow:0 15px 40px rgba(0,0,0,.25)}
     .modal h2{margin:0 0 8px;font-size:18px}
@@ -33,29 +39,33 @@
     .item:last-child{border-bottom:0}
     .item:hover{background:#f6f8fb}
     .pill{font-size:11px;background:#eef2ff;color:#3730a3;padding:2px 8px;border-radius:999px}
-/* Corrige texto invisível nos botões do modal */
-.btn{ 
-  color: var(--text);           /* texto escuro sobre fundo branco */
-  background:#fff;
-  border:1px solid #e5e7eb;
-  white-space: nowrap;
-}
-.btn.primary{
-  background: var(--brand);
-  color:#fff;                   /* texto branco apenas no primary */
-  border-color: var(--brand);
-}
-
+    .btn{padding:10px 14px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;color:var(--text)}
+    .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
     .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111827;color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;display:none;z-index:60}
     .helper{font-size:11.5px;color:#6b7280;margin-top:6px}
+
+    /* Combobox (dropdown) do palpite */
+    .combo{position:relative;display:flex;width:520px;max-width:72vw}
+    .combo input{flex:1;border-top-right-radius:0;border-bottom-right-radius:0}
+    .combo-btn{
+      padding:0 12px;border:1px solid #e5e7eb;border-left:0;background:#fff;color:var(--text);
+      border-top-right-radius:10px;border-bottom-right-radius:10px;cursor:pointer
+    }
+    .combo-list{
+      position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border:1px solid #e5e7eb;border-radius:10px;
+      box-shadow:0 10px 25px rgba(0,0,0,.08);max-height:260px;overflow:auto;z-index:40
+    }
+    .combo-item{padding:10px 12px;cursor:pointer}
+    .combo-item:hover,.combo-item[aria-selected="true"]{background:#f6f8fb}
+    .empty{padding:10px 12px;color:#6b7280}
   </style>
 </head>
 <body>
   <div class="container">
     <div class="card" role="region" aria-labelledby="title">
-      <div class="img-wrap" id="imgWrap" aria-live="polite">
+      <div class="img-wrap" aria-live="polite">
         <img id="photo" src="" alt="Foto da rodada" style="display:none" />
-        <img id="loader" src="https://thaysresende.github.io/integracaotadt/loading.gif" alt="Carregando imagem" />
+        <img id="loader" src="./loading.gif" alt="Carregando imagem" />
       </div>
 
       <div class="title" id="title">Quem sou eu?</div>
@@ -67,11 +77,15 @@
 
       <form id="guessForm" autocomplete="off">
         <div class="row">
-          <input id="guessInput" type="text" list="namesList" placeholder="Digite o nome de quem você acha que é" required />
+          <!-- COMBOBOX -->
+          <div class="combo">
+            <input id="guessInput" type="text" placeholder="Digite ou escolha um nome" autocomplete="off" />
+            <button type="button" id="guessToggle" class="combo-btn" aria-label="Abrir lista">▾</button>
+            <div id="comboList" class="combo-list" role="listbox" hidden></div>
+          </div>
           <button id="sendBtn" type="submit">enviar</button>
         </div>
-        <datalist id="namesList"></datalist>
-        <div class="helper">O autocompletar usa a mesma lista de colaboradores.</div>
+        <div class="helper">Clique no ▾ para ver a lista completa ou comece a digitar.</div>
       </form>
 
       <div id="sentInfo" class="sent" style="display:none">
@@ -107,10 +121,8 @@
 
   <script>
     /* ===== CONFIG ===== */
-    const API_BASE   = 'https://script.google.com/macros/s/AKfycbxQa8zEGfYoTK1og8QPtJeRynT4wMU4g86KpA2-bOkEJrj16c3_5IgNwHrCJvX_SBznyg/exec'; // ajuste aqui
-    // GET  `${API_BASE}?route=current` -> { roundId, imageUrl }
-    // POST `${API_BASE}?route=submit`  -> body { roundId, name, guess }
-    const COLABS_URL = 'https://thaysresende.github.io/integracaotadt/colabs.json'; // relativo à mesma pasta
+    const API_BASE   = 'https://script.google.com/macros/s/AKfycbxQa8zEGfYoTK1og8QPtJeRynT4wMU4g86KpA2-bOkEJrj16c3_5IgNwHrCJvX_SBznyg/exec'; // ajuste
+    const COLABS_URL = './colabs.json';
 
     /* ===== STORAGE KEYS ===== */
     const LS_USER = 'aq_user_name';
@@ -120,15 +132,19 @@
     const $photo=document.getElementById('photo'), $loader=document.getElementById('loader');
     const $whoName=document.getElementById('whoName'), $whoLine=document.getElementById('whoLine'), $switchLink=document.getElementById('switchLink');
     const $guessForm=document.getElementById('guessForm'), $guessInput=document.getElementById('guessInput'), $sendBtn=document.getElementById('sendBtn');
-    const $sentInfo=document.getElementById('sentInfo'), $toast=document.getElementById('toast'), $namesList=document.getElementById('namesList');
+    const $sentInfo=document.getElementById('sentInfo'), $toast=document.getElementById('toast');
     const $backdrop=document.getElementById('modalBackdrop'), $list=document.getElementById('list'), $search=document.getElementById('searchBox');
     const $closeModal=document.getElementById('closeModal'), $confirmBtn=document.getElementById('confirmModal'), $reloadBtn=document.getElementById('reloadColabs');
+
+    // Combobox
+    const $comboList=document.getElementById('comboList'), $guessToggle=document.getElementById('guessToggle');
 
     /* ===== ESTADO ===== */
     let roundId=null;
     let userName=localStorage.getItem(LS_USER)||'';
     let collaborators=[];
     let selectedName=userName||null;
+    let comboIndex=-1;
 
     /* ===== UTIL ===== */
     function toast(msg, ms=2200){ $toast.textContent=msg; $toast.style.display='block'; setTimeout(()=> $toast.style.display='none', ms); }
@@ -136,23 +152,46 @@
     function setSentUI(sent){ $sentInfo.style.display=sent?'flex':'none'; $sendBtn.disabled=sent; $guessInput.disabled=sent; }
     function isAlreadySent(){ if(!roundId||!userName) return false; return localStorage.getItem(LS_GUESS(roundId, userName))==='1'; }
     function lockIfNeeded(){ setSentUI(isAlreadySent()); }
-    function openModal(){ $backdrop.style.display='flex'; $backdrop.setAttribute('aria-hidden','false'); $search.value=''; renderList(); selectedName=userName||null; syncConfirm(); }
+    function openModal(){ $backdrop.style.display='flex'; $backdrop.setAttribute('aria-hidden','false'); $search.value=''; renderModalList(); selectedName=userName||null; syncConfirm(); }
     function closeModal(){ $backdrop.style.display='none'; $backdrop.setAttribute('aria-hidden','true'); }
     function syncConfirm(){ $confirmBtn.disabled=!selectedName; }
-    function renderList(){
+
+    /* ===== MODAL LIST ===== */
+    function renderModalList(){
       const q=($search.value||'').toLowerCase().trim();
       const items=collaborators.filter(n=>!q||n.toLowerCase().includes(q)).map(n=>{
         const div=document.createElement('div'); div.className='item'; div.setAttribute('role','option');
         div.innerHTML=`<span>${n}</span>${selectedName===n?'<span class="pill">Selecionado</span>':''}`;
-        div.onclick=()=>{selectedName=n; renderList(); syncConfirm();};
+        div.onclick=()=>{selectedName=n; renderModalList(); syncConfirm();};
         return div;
       });
       $list.replaceChildren(...(items.length?items:[Object.assign(document.createElement('div'),{className:'item',textContent:'Nenhum nome encontrado'})]));
     }
-    function addNamesToDatalist(){
-      $namesList.replaceChildren(...collaborators.map(n=>{const o=document.createElement('option'); o.value=n; return o;}));
+
+    /* ===== COMBOBOX ===== */
+    function openCombo(){ $comboList.hidden=false; comboIndex=-1; renderCombo(); }
+    function closeCombo(){ $comboList.hidden=true; comboIndex=-1; }
+    function isComboOpen(){ return !$comboList.hidden; }
+    function renderCombo(){
+      const q=$guessInput.value.toLowerCase().trim();
+      const arr=collaborators.filter(n=>!q||n.toLowerCase().includes(q));
+      if(arr.length===0){
+        const empty=document.createElement('div'); empty.className='empty'; empty.textContent='Nenhum nome encontrado';
+        $comboList.replaceChildren(empty); return;
+      }
+      const nodes=arr.map(n=>{
+        const d=document.createElement('div');
+        d.className='combo-item'; d.setAttribute('role','option'); d.textContent=n;
+        d.onclick=()=>{ $guessInput.value=n; closeCombo(); $guessInput.focus(); };
+        return d;
+      });
+      $comboList.replaceChildren(...nodes);
+      updateComboSel();
     }
-    function preLoadImg(url){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(url); i.onerror=rej; i.src=url; }); }
+    function updateComboSel(){
+      [...$comboList.children].forEach((el,i)=> el.setAttribute('aria-selected', i===comboIndex));
+      if(comboIndex>=0 && $comboList.children[comboIndex]) $comboList.children[comboIndex].scrollIntoView({block:'nearest'});
+    }
 
     /* ===== API ===== */
     async function fetchRound(){
@@ -172,19 +211,16 @@
       if(!res.ok||data.error) throw new Error(data.error||'Falha ao enviar palpite');
       return data;
     }
-async function fetchCollaborators(){
-  const res = await fetch(COLABS_URL,{cache:'no-store'});
-  if(!res.ok) throw new Error('Não foi possível carregar a lista de colaboradores');
-  const list = await res.json();
-  if(!Array.isArray(list)) throw new Error('JSON deve ser um array de strings');
-  collaborators = list;
-  addNamesToDatalist();
-  // se o modal já estiver aberto, atualiza a lista na hora
-  if (getComputedStyle($backdrop).display !== 'none') {
-    renderList();
-  }
-}
-
+    async function fetchCollaborators(){
+      const res=await fetch(COLABS_URL,{cache:'no-store'});
+      if(!res.ok) throw new Error('Não foi possível carregar a lista de colaboradores');
+      const list=await res.json(); if(!Array.isArray(list)) throw new Error('JSON deve ser um array de strings');
+      collaborators=list;
+      // se modal aberto, re-render
+      if (getComputedStyle($backdrop).display!=='none') renderModalList();
+      // se dropdown aberto, re-render
+      if (isComboOpen()) renderCombo();
+    }
 
     /* ===== BOOT ===== */
     async function boot(){
@@ -198,14 +234,11 @@ async function fetchCollaborators(){
         if(isAlreadySent()) setSentUI(true);
 
         try{
-          const ok=await preLoadImg(imageUrl);
-          $photo.src=ok;
-          $photo.style.display='block';
-          $loader.style.display='none';  // esconde loading.gif
-        }catch{
-          // mantém o loading.gif visível
-          toast('Carregando imagem da rodada…');
-        }
+          const img=new Image();
+          img.onload=()=>{ $photo.src=imageUrl; $photo.style.display='block'; $loader.style.display='none'; };
+          img.onerror=()=> toast('Carregando imagem da rodada…');
+          img.src=imageUrl;
+        }catch{}
       }catch(e){ console.error(e); toast('Erro ao carregar rodada.'); }
 
       if(!userName) openModal();
@@ -215,8 +248,27 @@ async function fetchCollaborators(){
     document.getElementById('switchLink').onclick=(e)=>{e.preventDefault(); openModal();};
     $closeModal.onclick=()=> closeModal();
     $confirmBtn.onclick=()=>{ if(!selectedName) return; userName=selectedName; localStorage.setItem(LS_USER,userName); setWhoLine(); closeModal(); lockIfNeeded(); toast('Nome salvo.'); };
-    $search.oninput=renderList;
-    $reloadBtn.onclick=async ()=>{ $reloadBtn.disabled=true; try{ await fetchCollaborators(); renderList(); toast('Lista recarregada.'); }catch{ toast('Falha ao recarregar.'); } finally{ $reloadBtn.disabled=false; } };
+    $search.oninput=renderModalList;
+    $reloadBtn.onclick=async ()=>{ $reloadBtn.disabled=true; try{ await fetchCollaborators(); toast('Lista recarregada.'); }catch{ toast('Falha ao recarregar.'); } finally{ $reloadBtn.disabled=false; } };
+
+    // Combobox handlers
+    $guessToggle.addEventListener('click', ()=> isComboOpen()? closeCombo(): openCombo());
+    $guessInput.addEventListener('focus', ()=> openCombo());
+    $guessInput.addEventListener('input', ()=> { if(!isComboOpen()) openCombo(); else renderCombo(); });
+    document.addEventListener('click', (e)=>{ if(!e.target.closest('.combo')) closeCombo(); });
+
+    $guessInput.addEventListener('keydown', (e)=>{
+      if(!isComboOpen()) return;
+      const max=$comboList.children.length-1;
+      if(e.key==='ArrowDown'){ comboIndex=Math.min(comboIndex+1,max); updateComboSel(); e.preventDefault(); }
+      else if(e.key==='ArrowUp'){ comboIndex=Math.max(comboIndex-1,0); updateComboSel(); e.preventDefault(); }
+      else if(e.key==='Enter'){
+        if(comboIndex>=0 && $comboList.children[comboIndex]){
+          $guessInput.value=$comboList.children[comboIndex].textContent;
+          closeCombo(); e.preventDefault();
+        }
+      }else if(e.key==='Escape'){ closeCombo(); }
+    });
 
     $guessForm.addEventListener('submit', async (e)=>{
       e.preventDefault();
