@@ -33,8 +33,19 @@
     .item:last-child{border-bottom:0}
     .item:hover{background:#f6f8fb}
     .pill{font-size:11px;background:#eef2ff;color:#3730a3;padding:2px 8px;border-radius:999px}
-    .btn{padding:10px 14px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
-    .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+/* Corrige texto invisível nos botões do modal */
+.btn{ 
+  color: var(--text);           /* texto escuro sobre fundo branco */
+  background:#fff;
+  border:1px solid #e5e7eb;
+  white-space: nowrap;
+}
+.btn.primary{
+  background: var(--brand);
+  color:#fff;                   /* texto branco apenas no primary */
+  border-color: var(--brand);
+}
+
     .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111827;color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;display:none;z-index:60}
     .helper{font-size:11.5px;color:#6b7280;margin-top:6px}
   </style>
@@ -161,12 +172,19 @@
       if(!res.ok||data.error) throw new Error(data.error||'Falha ao enviar palpite');
       return data;
     }
-    async function fetchCollaborators(){
-      const res=await fetch(COLABS_URL,{cache:'no-store'});
-      if(!res.ok) throw new Error('Não foi possível carregar a lista de colaboradores');
-      const list=await res.json(); if(!Array.isArray(list)) throw new Error('JSON deve ser um array de strings');
-      collaborators=list; addNamesToDatalist();
-    }
+async function fetchCollaborators(){
+  const res = await fetch(COLABS_URL,{cache:'no-store'});
+  if(!res.ok) throw new Error('Não foi possível carregar a lista de colaboradores');
+  const list = await res.json();
+  if(!Array.isArray(list)) throw new Error('JSON deve ser um array de strings');
+  collaborators = list;
+  addNamesToDatalist();
+  // se o modal já estiver aberto, atualiza a lista na hora
+  if (getComputedStyle($backdrop).display !== 'none') {
+    renderList();
+  }
+}
+
 
     /* ===== BOOT ===== */
     async function boot(){
