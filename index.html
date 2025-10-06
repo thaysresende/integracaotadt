@@ -1,352 +1,229 @@
 <!doctype html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Adivinha Quem? — Dinâmica</title>
+  <title>Quem sou eu?</title>
   <style>
-    :root{
-      --bg:#f7f4f5;        /* fundo da página */
-      --ink:#222;          /* texto principal */
-      --muted:#666;        /* texto auxiliar */
-      --accent:#2b6cb0;    /* foco */
-      --ok:#0f9d58;        /* sucesso */
-      --warn:#c94c29;      /* aviso */
-      --card:#ffffff;
-      --line:#dcd6d8;
-    }
-    *{box-sizing:border-box}
+    :root{--card:#fff;--muted:#6b7280;--text:#111827;--brand:#111827;--ring:#11182722;--ok:#16a34a}
     html,body{height:100%}
-    body{
-      margin:0; background:var(--bg); color:var(--ink);
-      font:16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      display:grid; place-items:center;
-    }
-    .wrap{ width:min(860px, 96vw); margin:32px auto; }
-    .card{ background:var(--bg); border-radius:28px; padding:28px 24px 36px; display:grid; justify-items:center; box-shadow:0 0 0 1px #e6dfe1 inset; gap:14px }
-
-    /* Imagem do dia */
-    .hero{ width:min(480px, 92vw); aspect-ratio:4/5; border-radius:24px; overflow:hidden; display:block; position:relative; background:#dfe7f5; border:1px solid #d4ced0 }
-    .hero img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover }
-
-    /* Cabeçalho */
-    .title{ font-weight:800; font-size:22px; letter-spacing:.2px; margin:6px 0 2px }
-    .sub{ color:var(--muted); font-size:14px; margin-top:-6px }
-
-    /* Form */
-    form{ width:min(620px, 96vw); display:grid; justify-items:center; gap:10px }
-    label{ font-size:18px; font-weight:600 }
-
-    /* Campo padrão */
-    .input{ width:100%; border-radius:999px; padding:12px 18px; border:2px solid #c9c3c5; outline:none; font-size:16px; background:#fff; box-shadow:0 2px 0 #bdb6b9; transition:border-color .15s, box-shadow .15s }
-    .input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent) }
-
-    /* Linha com input + botão ao lado */
-    .row-inline{ width:100%; display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center }
-
-    .btn{ border:2px solid #c9c3c5; background:#fff; border-radius:999px; padding:10px 22px; font-weight:700; font-size:16px; cursor:pointer; box-shadow:0 2px 0 #bdb6b9 }
-    .btn:hover{ filter:brightness(.98) }
-    .btn:active{ transform:translateY(1px) }
-    .link{ font-size:13px; color:var(--accent); background:none; border:none; cursor:pointer; text-decoration:underline }
-
-    .helper{ font-size:13px; color:var(--muted); margin-top:2px }
-    .ok{ color:var(--ok) }
-    .warn{ color:var(--warn) }
-
-    /* Leaderboard */
-    .board{ width:min(620px, 96vw); background:var(--card); border:1px solid #e7e1e3; border-radius:16px; padding:10px 14px }
-    .board h3{ margin:4px 0 8px; font-size:16px }
-    .board ol{ margin:0; padding-left:20px }
-
-    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:8px }
-
-    /* Regras (melhorado) */
-    .rules{ font-size:14px; background:#fff; border:1px solid #e7e1e3; border-radius:14px; padding:12px 14px; width:min(620px, 96vw) }
-    .rules h4{ margin:4px 0 8px; font-size:15px }
-    .rules ul{ margin:0; padding-left:20px }
-
-    /* --- Modal de seleção de colaborador --- */
-    .modal{ position:fixed; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.25); padding:24px; z-index:50 }
-    .modal[hidden]{ display:none }
-    .picker{ width:min(640px, 92vw); background:#fff; border:1px solid var(--line); border-radius:20px; padding:28px 24px; display:grid; gap:12px; justify-items:center }
-    .picker h2{ margin:0 0 10px; font-size:18px; text-transform:uppercase; letter-spacing:.08em }
-    .search{ width:100%; max-width:420px; border-radius:999px; padding:12px 18px; border:2px solid #000; outline:none; font-size:16px }
-    .list{ width:100%; max-width:520px; border:1px solid var(--line); border-radius:14px; max-height:280px; overflow:auto; padding:6px; background:var(--card) }
-    .item{ padding:10px 12px; border-radius:10px; cursor:pointer }
-    .item:hover, .item.active{ background:#f1f5ff; }
-    .empty{ padding:10px; color:var(--muted); font-size:14px; text-align:center }
-
-    .who{ font-size:14px; color:var(--muted) }
-
-    /* Combo de palpite (auto-sugestões) */
-    .combo{ position:relative }
-    .sugg{ position:absolute; top:100%; left:0; right:0; z-index:10; background:#fff; border:1px solid var(--line); border-radius:12px; max-height:240px; overflow:auto; padding:6px; margin-top:6px }
-    .sugg[hidden]{ display:none }
-    .sugg .sitem{ padding:10px 12px; border-radius:8px; cursor:pointer }
-    .sugg .sitem:hover, .sugg .sitem.active{ background:#f1f5ff }
+    body{margin:0;background:#f5f7fb;color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial}
+    .container{max-width:820px;margin:0 auto;padding:24px}
+    .card{background:var(--card);border:1px solid #e5e7eb;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.06);padding:28px;text-align:center}
+    .img-wrap{width:420px;max-width:90vw;aspect-ratio:1/1;margin:0 auto 16px;border-radius:14px;overflow:hidden;background:#eef0f6;border:1px solid #e5e7eb;display:grid;place-items:center}
+    .img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+    .title{font-weight:800;font-size:22px;margin:6px 0 12px}
+    .muted{color:var(--muted);font-size:12.5px}
+    .muted a{color:#374151;text-decoration:underline;cursor:pointer}
+    form{margin-top:14px}
+    .row{display:flex;gap:10px;justify-content:center}
+    input[type="text"]{width:520px;max-width:72vw;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;font-size:14.5px;outline:0;transition:box-shadow .15s,border-color .15s}
+    input[type="text"]:focus{border-color:var(--brand);box-shadow:0 0 0 4px var(--ring)}
+    button{padding:12px 18px;border-radius:10px;border:0;background:var(--brand);color:#fff;font-weight:700;cursor:pointer}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .sent{margin-top:10px;color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:6px;justify-content:center}
+    .sent.ok{color:var(--ok)}
+    .rules{margin-top:28px;font-size:12.5px;color:#374151}
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+    .modal{width:680px;max-width:95vw;background:#fff;border-radius:16px;padding:18px;box-shadow:0 15px 40px rgba(0,0,0,.25)}
+    .modal h2{margin:0 0 8px;font-size:18px}
+    .search{display:flex;gap:8px;margin-bottom:12px}
+    .list{max-height:52vh;overflow:auto;border:1px solid #e5e7eb;border-radius:12px}
+    .item{padding:10px 12px;border-bottom:1px solid #eef0f3;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+    .item:last-child{border-bottom:0}
+    .item:hover{background:#f6f8fb}
+    .pill{font-size:11px;background:#eef2ff;color:#3730a3;padding:2px 8px;border-radius:999px}
+    .btn{padding:10px 14px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
+    .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+    /* Toast + loader */
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111827;color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;display:none;z-index:60}
+    .spinner{width:72px;height:72px;display:inline-block;background:url('data:image/gif;base64,R0lGODlhIAAgAPQAAP///wAAAM7OzqamppKSkoCAgN7e3sPDw5mZmY+Pj9nZ2bi4uHx8fICAgKOjo+Li4ra2tpCQkJ+fn9DQ0K+vr4SEhObm5vj4+P///wAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAABcALAAAAAAgACAAAAVt4CeOZGmeaKqubOu+cCzPdG2fQJADQhBICjQqkQqgVhCgkQJt0bHhC7n8wQIw1m1oAYa8z2XHACkCEgkEJ6FvQqQwRrAqFJ6BV3gQk8iCkWgkQhC5Dk8qT0BgQmJgJgJH5kJQwGFBqBHF0GAgA7') center/contain no-repeat}
+    .helper{font-size:11.5px;color:#6b7280;margin-top:6px}
   </style>
 </head>
 <body>
-  <!-- Modal de seleção do colaborador -->
-  <div id="modal" class="modal" hidden>
-    <div class="picker">
-      <h2>SEU NOME:</h2>
-      <input id="search" class="search" type="text" placeholder="Digite para filtrar…" autofocus>
-      <div id="list" class="list" role="listbox" aria-label="Colaboradores"></div>
-      <p class="helper">Selecione seu nome na lista. Ficará salvo neste navegador para as próximas visitas.</p>
+  <div class="container">
+    <div class="card" role="region" aria-labelledby="title">
+      <div class="img-wrap" id="imgWrap" aria-live="polite">
+        <img id="photo" src="" alt="Foto da rodada" style="display:none" />
+        <div id="loader" class="spinner" aria-label="Carregando imagem"></div>
+      </div>
+
+      <div class="title" id="title">Quem sou eu?</div>
+
+      <div class="muted" id="whoLine">
+        Você está palpitando como <b id="whoName">–</b>
+        · <a id="switchLink">trocar</a>
+      </div>
+
+      <form id="guessForm" autocomplete="off">
+        <div class="row">
+          <input id="guessInput" type="text" list="namesList" placeholder="Digite o nome de quem você acha que é" required />
+          <button id="sendBtn" type="submit">enviar</button>
+        </div>
+        <datalist id="namesList"></datalist>
+        <div class="helper">Use Enter para enviar. O autocompletar usa a mesma lista de colaboradores.</div>
+      </form>
+
+      <div id="sentInfo" class="sent" style="display:none">
+        <span>✔</span> <span>Palpite enviado</span>
+      </div>
+
+      <div class="rules">
+        <b>Pontuação:</b><br/>
+        +5 para as <b>5 primeiras respostas corretas;</b><br/>
+        +3 para as demais respostas corretas;<br/>
+        +1 por participação (se errar).
+      </div>
     </div>
   </div>
 
-  <main class="wrap">
-    <section class="card" aria-label="Dinâmica Adivinha Quem?">
-      <figure class="hero" aria-hidden="true">
-        <!-- A imagem pode vir do parâmetro ?img=... ou do endpoint /round -->
-        <img id="fotoDia" alt="Foto da rodada" />
-      </figure>
-
-      <div class="title">Adivinha quem é?</div>
-      <div class="sub">Rodada <span id="roundId">#</span> • <span id="infoEncerramento"></span></div>
-
-      <form id="gameForm" novalidate>
-        <label for="palpite">selecione quem é na foto:</label>
-        <div class="row-inline">
-          <!-- campo de palpite com auto-sugestões baseadas na mesma lista de colaboradores -->
-          <div class="combo" style="width:100%">
-            <input class="input" type="text" id="palpite" name="palpite" placeholder="Comece a digitar um nome…" autocomplete="off" required />
-            <div id="sugg" class="sugg" hidden></div>
-          </div>
-          <button class="btn" type="submit">enviar palpite</button>
-        </div>
-
-        <!-- Campos ocultos com a identidade do jogador -->
-        <input type="hidden" id="nome" name="nome" />
-        <input type="hidden" id="apelido" name="apelido" />
-        <div class="who" id="whoBox" hidden>
-          Jogando como <strong id="who"></strong> • <button id="trocar" class="link" type="button">trocar</button>
-        </div>
-
-        <p id="msg" class="helper" role="status" aria-live="polite"></p>
-      </form>
-
-      <div class="rules">
-        <h4>Como funciona</h4>
-        <ul>
-          <li>Escolha seu nome na primeira tela. Ele ficará salvo no seu navegador.</li>
-          <li>Veja a foto da <strong>Rodada #N</strong> e selecione na lista quem você acha que é.</li>
-          <li><strong>Um palpite por rodada</strong> por pessoa.</li>
-        </ul>
-        <h4>Pontuação</h4>
-        <ul>
-          <li><strong>5 pts</strong> – para as <strong>5 primeiras respostas corretas</strong> da rodada.</li>
-          <li><strong>3 pts</strong> – para as demais respostas corretas.</li>
-          <li><strong>1 pt</strong> – participação (se errou).</li>
-        </ul>
+  <!-- Modal de seleção de colaborador -->
+  <div id="modalBackdrop" class="modal-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h2 id="modalTitle">Escolha seu nome</h2>
+      <div class="search">
+        <input id="searchBox" type="text" placeholder="Buscar por nome..." />
+        <button class="btn" id="reloadColabs">Recarregar</button>
       </div>
-
-      <div id="leaderboard" class="board" hidden>
-        <h3 id="placarTitulo">Placar</h3>
-        <ol id="ranking"></ol>
+      <div id="list" class="list" role="listbox" aria-label="Lista de colaboradores"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+        <button class="btn" id="closeModal">Cancelar</button>
+        <button class="btn primary" id="confirmModal" disabled>Confirmar</button>
       </div>
+    </div>
+  </div>
 
-      <div class="toolbar">
-        <button id="btnPlacarRodada" class="btn" type="button">placar da rodada</button>
-        <button id="btnPlacarGeral" class="btn" type="button">placar geral</button>
-      </div>
-    </section>
-  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
-    /*** CONFIGURE AQUI ***/
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbxmj6eK_98fGKeaypcZFa5PspJLToQuZTV9oEz5nyD5vLdruu77Xwj52sR1a--8qapKlg/exec'; // troque pelo seu URL /exec do Apps Script
+    /* ===== CONFIG ===== */
+    const API_BASE   = 'https://script.google.com/macros/s/AKfycbxQa8zEGfYoTK1og8QPtJeRynT4wMU4g86KpA2-bOkEJrj16c3_5IgNwHrCJvX_SBznyg/exec'; // <- ajuste
+    // ENDPOINTS: GET  `${API_BASE}?route=current`  -> { roundId, imageUrl }
+    //            POST `${API_BASE}?route=submit`   -> { ok, roundId, isCorrect, points } | { error }
+    const COLABS_URL = '/colabs.json'; // ou URL pública com ["Nome 1", "Nome 2", ...]
 
-    /** Lista de colaboradores */
-    const COLABS = [
-      'Aguinaldo da Rosa Moggi','Alessandro de Oliveira','Alex Portz Ziantonio','Alexsander Barbosa Siqueira','Alexsandro Rodrigues Pinheiro','Allan Presotto','Amanda Polli','Amos Hsieh Carneiro Garcia','Ana Julia Santiago de Oliveira','Andre Domingos Vasconcelos','Andre Mai Velasco','Bianca Lahm Gomes','Bouchra Assad Akl','Carlos Eduardo Savio Penteado','Carlos Henrique Leite','Christian Carvalho Guimaraes Monteiro','Cinthia Rodrigues Da Silva','Claudio Henrique Desordi Barbosa','Danielle Nogueira Bernartt','Davi Eduardo Nunes','Davis Rhegers Camargo dos Santos','Deivid Marlon Fernandes da Costa','Denise Liesenfeld','Eduarda Gonçalves da Cunha','Eduardo Mendes Pereira','Everton Golle','Felipe Theodoro Guimaraes','Flavio Canuto de Sousa','Francisco Machado Becker','Frank Jose Cedeno Gonzalez','Gabriel Belo Dias','Gabriel Casanova Baldissera','Gabriel Ferreira de Souza','Gabriel Jose Trojack','Gabriele Oliveira Nicolli','Georgi Mateus Pazini Acordi','Gilson Dias de Oliveira','Gustavo Eduardo Muller Francisquina','Gustavo Rafael de Lima','Gustavo Souza','Gustavo Viana Bastos','Heber Miguel dos Santos','Helder Vinicius Scherer','Henrique Benitez de Freitas','Igor Leandro Patricio Vargas','Israel Furtado Santos Souza','Jean Felipe Moschen Buss','Joao Vitor Damaceno','Joao Vitor Lucas Pinotti','Jonatas Eduardo Stein','Jose Alberto Pereira dos Santos','Kame Haung Zhu','Katherine Rojas Salazar','Kaue Sanches Goncalves','Layon Luciano Lucena Alves','Leandro Vinicius da Mata Silva','Leonardo Augusto Antunes','Lucas Matheus Spancerski','Lucas Medeiros Reinaldet dos Santos','Lucas Sampaio Mantuan','Marcelo Augusto Valliati','Marcos Cesar dos Santos','Marcos Vinicius Johann','Matheus da Silva Cadini','Matheus Riquelme Gonsalves','Mauricio Machado Lourenco','Michael Tiago Barroso','Milena Lucas dos Santos','Naelton Fonseca da Silva','Nata Rafael Cruz de Jesus','Natania Pereira Inez','Neivaldo Marcos Dias De Moraes Junior','Nicolas Iunovich Konig','Patricia Rodrigues','Paula Beatriz Araujo Leao Cunha','Paullyanne Portela de Farias','Rafael Dezordi','Rafhael Pereira Zrenner','Raianny Proenca de Camargo de Oliveira','Roger William Silva Benitez','Sheila Carolina Souza Arnold','Thays Resende Achucarro','Valeria Nunes Dos Santos','Victor Gabriel da Fonseca Ferrari','Vinicius Gabriel Aquino Ferreira','Vitor Gabriel Marques Quadros','Vitor Ramiro Borges','Willbur Rogers de Souza'
-    ];
+    /* ===== STORAGE KEYS ===== */
+    const LS_USER = 'aq_user_name';
+    const LS_GUESS = (rid, name) => `aq_guess:${rid}:${(name||'').toLowerCase()}`;
 
-    /*** HELPERS ***/
-    const $ = (id)=> document.getElementById(id);
-    const params = new URLSearchParams(location.search);
-    const norm = (s)=> String(s||'').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
+    /* ===== ELEMENTOS ===== */
+    const $photo=document.getElementById('photo'), $loader=document.getElementById('loader');
+    const $whoName=document.getElementById('whoName'), $whoLine=document.getElementById('whoLine'), $switchLink=document.getElementById('switchLink');
+    const $guessForm=document.getElementById('guessForm'), $guessInput=document.getElementById('guessInput'), $sendBtn=document.getElementById('sendBtn');
+    const $sentInfo=document.getElementById('sentInfo'), $toast=document.getElementById('toast'), $namesList=document.getElementById('namesList');
+    const $backdrop=document.getElementById('modalBackdrop'), $list=document.getElementById('list'), $search=document.getElementById('searchBox');
+    const $closeModal=document.getElementById('closeModal'), $confirmBtn=document.getElementById('confirmModal'), $reloadBtn=document.getElementById('reloadColabs');
 
-    // Rodada numérica (ex.: ?r=12). Default = 1
-    const roundId = params.get('r') || '1';
-    let imageUrl = params.get('img') || '';
+    /* ===== ESTADO ===== */
+    let roundId=null;
+    let userName=localStorage.getItem(LS_USER)||'';
+    let collaborators=[];
+    let selectedName=userName||null;
 
-    const fotoEl = $('fotoDia');
-    const roundEl = $('roundId');
-    const infoEncerramento = $('infoEncerramento');
-    const msg  = $('msg');
-    const boardBox = $('leaderboard');
-    const boardTitle = $('placarTitulo');
-    const boardOl = $('ranking');
-
-    const modal = $('modal');
-    const search = $('search');
-    const list = $('list');
-    const whoBox = $('whoBox');
-    const who = $('who');
-    const trocar = $('trocar');
-
-    const inputGuess = $('palpite');
-    const submitBtn = document.querySelector('#gameForm button[type="submit"]');
-    const sugg = $('sugg');
-
-    roundEl.textContent = `#${roundId}`;
-
-    // ---------- Cache de palpite (por rodada e por jogador) ----------
-    const STORAGE_KEY = 'aq_user_name';
-    const GUESS_KEY = (rid, name) => `aq_guess:${rid}:${norm(name)}`;
-    function loadGuessCache(){
-      const name = $('nome').value.trim(); if(!name) return null;
-      try{ return JSON.parse(localStorage.getItem(GUESS_KEY(roundId, name)) || 'null'); }catch{ return null; }
-    }
-    function saveGuessCache(guess){
-      const name = $('nome').value.trim(); if(!name) return;
-      localStorage.setItem(GUESS_KEY(roundId, name), JSON.stringify({guess, ts: Date.now()}));
-    }
-    function applyGuessUI(cache){
-      if(!cache) return;
-      inputGuess.value = cache.guess || '';
-      inputGuess.disabled = true;
-      submitBtn.disabled = true;
-      const when = cache.ts ? new Date(cache.ts).toLocaleString('pt-BR') : '';
-      msg.innerHTML = `✔️ Você já enviou seu palpite <strong>${escapeHtml(cache.guess||'')}</strong> ${when?`em ${when}`:''}.`;
-    }
-    function resetGuessUI(){
-      inputGuess.disabled = false; submitBtn.disabled = false; msg.textContent='';
-    }
-
-    // ---------- Login por seleção ----------
-    function openPicker(){ modal.hidden = false; renderList(''); search.value=''; search.focus(); }
-    function closePicker(){ modal.hidden = true; }
-
-    function renderList(q){
-      const qn = norm(q);
-      const rows = COLABS.filter(n => !qn || norm(n).includes(qn));
-      if(!rows.length){ list.innerHTML = `<div class="empty">Nenhum nome encontrado.</div>`; return; }
-      list.innerHTML = rows.map(n => `<div class="item" role="option" tabindex="0" data-name="${n.replace(/"/g,'&quot;')}">${n}</div>`).join('');
-      [...list.querySelectorAll('.item')].forEach(el=>{
-        el.addEventListener('click', ()=> selectName(el.dataset.name));
-        el.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter'){ selectName(el.dataset.name);} });
+    /* ===== UTIL ===== */
+    function toast(msg, ms=2200){ $toast.textContent=msg; $toast.style.display='block'; setTimeout(()=> $toast.style.display='none', ms); }
+    function setWhoLine(){ $whoName.textContent=userName||'—'; $whoLine.style.visibility=userName?'visible':'hidden'; }
+    function setSentUI(sent){ $sentInfo.style.display=sent?'flex':'none'; $sendBtn.disabled=sent; $guessInput.disabled=sent; }
+    function isAlreadySent(){ if(!roundId||!userName) return false; return localStorage.getItem(LS_GUESS(roundId, userName))==='1'; }
+    function lockIfNeeded(){ setSentUI(isAlreadySent()); }
+    function openModal(){ $backdrop.style.display='flex'; $backdrop.setAttribute('aria-hidden','false'); $search.value=''; renderList(); selectedName=userName||null; syncConfirm(); }
+    function closeModal(){ $backdrop.style.display='none'; $backdrop.setAttribute('aria-hidden','true'); }
+    function syncConfirm(){ $confirmBtn.disabled=!selectedName; }
+    function renderList(){
+      const q=($search.value||'').toLowerCase().trim();
+      const items=collaborators.filter(n=>!q||n.toLowerCase().includes(q)).map(n=>{
+        const div=document.createElement('div'); div.className='item'; div.setAttribute('role','option');
+        div.innerHTML=`<span>${n}</span>${selectedName===n?'<span class="pill">Selecionado</span>':''}`;
+        div.onclick=()=>{selectedName=n; renderList(); syncConfirm();};
+        return div;
       });
+      $list.replaceChildren(...(items.length?items:[Object.assign(document.createElement('div'),{className:'item',textContent:'Nenhum nome encontrado'})]));
     }
-
-    function selectName(name){
-      localStorage.setItem(STORAGE_KEY, name);
-      $('nome').value = name; // hidden field
-      who.textContent = name;
-      whoBox.hidden = false;
-      closePicker();
-      const cache = loadGuessCache();
-      if(cache) applyGuessUI(cache); else resetGuessUI();
+    function addNamesToDatalist(){
+      $namesList.replaceChildren(...collaborators.map(n=>{const o=document.createElement('option'); o.value=n; return o;}));
     }
+    function preLoadImg(url){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(url); i.onerror=rej; i.src=url; }); }
 
-    search.addEventListener('input', ()=> renderList(search.value));
-    trocar.addEventListener('click', ()=>{ localStorage.removeItem(STORAGE_KEY); openPicker(); });
-
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if(saved && COLABS.includes(saved)){
-      selectName(saved);
-    } else {
-      openPicker();
-      renderList('');
+    /* ===== API ===== */
+    async function fetchRound(){
+      const res=await fetch(`${API_BASE}?route=current`,{cache:'no-store'});
+      if(!res.ok) throw new Error('Falha ao carregar rodada');
+      const data=await res.json();
+      if(!data||!data.roundId) throw new Error('Resposta inválida');
+      return data;
     }
-
-    // ---------- Auto-sugestões no campo de palpite ----------
-    function renderSugg(q){
-      const qn = norm(q);
-      const rows = COLABS.filter(n => !qn || norm(n).includes(qn)).slice(0,50);
-      if(!rows.length){ sugg.innerHTML = '<div class="empty">Nada encontrado</div>'; sugg.hidden = false; return; }
-      sugg.innerHTML = rows.map(n=>`<div class="sitem" tabindex="0" data-name="${n.replace(/"/g,'&quot;')}">${n}</div>`).join('');
-      sugg.hidden = false;
-      [...sugg.querySelectorAll('.sitem')].forEach(el=>{
-        el.addEventListener('click', ()=>{ inputGuess.value = el.dataset.name; sugg.hidden = true; });
-        el.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter'){ inputGuess.value = el.dataset.name; sugg.hidden = true; inputGuess.focus(); } });
+    async function submitGuess({roundId,name,guess}){
+      const res=await fetch(`${API_BASE}?route=submit`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({roundId,name,guess})
       });
+      const data=await res.json().catch(()=> ({}));
+      if(!res.ok||data.error) throw new Error(data.error||'Falha ao enviar palpite');
+      return data;
+    }
+    async function fetchCollaborators(){
+      const res=await fetch(COLABS_URL,{cache:'no-store'});
+      if(!res.ok) throw new Error('Não foi possível carregar a lista de colaboradores');
+      const list=await res.json(); if(!Array.isArray(list)) throw new Error('JSON deve ser um array de strings');
+      collaborators=list; addNamesToDatalist();
     }
 
-    inputGuess.addEventListener('focus', ()=> renderSugg(inputGuess.value));
-    inputGuess.addEventListener('input', ()=> renderSugg(inputGuess.value));
-    document.addEventListener('click', (e)=>{ if(!e.target.closest('.combo')) sugg.hidden = true; });
+    /* ===== BOOT ===== */
+    async function boot(){
+      setWhoLine();
+      try{ await fetchCollaborators(); }catch(e){ console.warn(e); toast('Aviso: lista de colaboradores indisponível.'); }
 
-    // ---------- Dados da rodada ----------
-    async function loadRound(){
       try{
-        if(imageUrl){ fotoEl.src = imageUrl; return; }
-        const res = await fetch(`${API_BASE}?route=round&r=${encodeURIComponent(roundId)}`);
-        const j = await res.json();
-        if(!res.ok) throw new Error(j.error||'Falha ao carregar rodada');
-        if(j.imageUrl) fotoEl.src = j.imageUrl;
-        if(j.closeTime) infoEncerramento.textContent = `Encerramento às ${j.closeTime}`;
-      }catch(err){
-        fotoEl.alt = 'Imagem indisponível';
-        infoEncerramento.textContent = '';
-      }
+        const { roundId:rid, imageUrl } = await fetchRound();
+        roundId=String(rid);
+        // desbloqueia se for nova rodada (chave local é por rodada+nome)
+        setSentUI(false);
+        if(isAlreadySent()) setSentUI(true);
+
+        try{
+          const ok=await preLoadImg(imageUrl);
+          $photo.src=ok; $photo.style.display='block'; $loader.style.display='none';
+        }catch{ /* mantém loader */ }
+      }catch(e){ console.error(e); toast('Erro ao carregar rodada.'); }
+
+      if(!userName) openModal();
     }
 
-    // ---------- Submit sem pré-flight (CORS) ----------
-    $('gameForm').addEventListener('submit', async (e)=>{
+    /* ===== EVENTOS ===== */
+    document.getElementById('switchLink').onclick=(e)=>{e.preventDefault(); openModal();};
+    $closeModal.onclick=()=> closeModal();
+    $confirmBtn.onclick=()=>{ if(!selectedName) return; userName=selectedName; localStorage.setItem(LS_USER,userName); setWhoLine(); closeModal(); lockIfNeeded(); toast('Nome salvo.'); };
+    $search.oninput=renderList;
+    $reloadBtn.onclick=async ()=>{ $reloadBtn.disabled=true; try{ await fetchCollaborators(); renderList(); toast('Lista recarregada.'); }catch{ toast('Falha ao recarregar.'); } finally{ $reloadBtn.disabled=false; } };
+
+    $guessForm.addEventListener('submit', async (e)=>{
       e.preventDefault();
-      const palpite = inputGuess.value.trim();
-      const nome    = $('nome').value.trim();
-      if(!nome){ msg.textContent = 'Selecione seu nome para jogar.'; openPicker(); return; }
-      if(!palpite){ msg.textContent = 'Selecione um nome na lista.'; inputGuess.focus(); return; }
-      if(!COLABS.includes(palpite)){
-        msg.textContent = 'Use um nome da lista para o palpite.'; inputGuess.focus(); return;
-      }
-      msg.textContent = 'Enviando…';
+      const guess=$guessInput.value.trim();
+      if(!guess) return;
+      if(!$photo.src){ toast('Aguarde a imagem.'); return; }
+      if(!userName){ openModal(); toast('Escolha seu nome.'); return; }
+      if(!roundId){ toast('Rodada não carregada.'); return; }
+      if(isAlreadySent()){ toast('Você já enviou palpite nesta rodada.'); return; }
+
+      $sendBtn.disabled=true;
       try{
-        const body = new URLSearchParams({ roundId, name:nome, alias:'', guess:palpite });
-        const res = await fetch(`${API_BASE}?route=submit`,{
-          method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8' }, body
-        });
-        const j = await res.json();
-        if(!res.ok) throw new Error(j.error||'Falha ao enviar');
-        // salva cache e bloqueia UI
-        saveGuessCache(palpite);
-        applyGuessUI({guess: palpite, ts: Date.now()});
+        const resp=await submitGuess({roundId,name:userName,guess});
+        localStorage.setItem(LS_GUESS(roundId,userName),'1');
+        setSentUI(true);
+        const okMsg = resp.isCorrect ? `Acertou! (+${resp.points})` : `Recebido! (+${resp.points})`;
+        toast(okMsg);
       }catch(err){
-        // se o backend disser que já respondeu, respeita e grava cache
-        if(/já respondeu/i.test(err.message||'')){
-          saveGuessCache(palpite);
-          applyGuessUI({guess: palpite, ts: Date.now()});
-        }
-        msg.innerHTML = `❌ <span class="warn">${err.message}</span>`;
+        // se backend já registrou (ex.: corrida), bloqueia local também
+        if(String(err.message||'').includes('já respondeu')){ localStorage.setItem(LS_GUESS(roundId,userName),'1'); setSentUI(true); }
+        else{ $sendBtn.disabled=false; }
+        toast(err.message||'Erro ao enviar palpite.');
       }
     });
 
-    // ---------- Placar ----------
-    $('btnPlacarRodada').addEventListener('click', async ()=>{
-      boardBox.hidden = false; boardTitle.textContent = `Placar — Rodada #${roundId}`; boardOl.innerHTML = '<li class="helper">Carregando…</li>';
-      try{
-        const res = await fetch(`${API_BASE}?route=leaderboard&round=${encodeURIComponent(roundId)}`);
-        const j = await res.json();
-        if(!res.ok) throw new Error(j.error||'Falha ao carregar placar');
-        renderBoard(j.rows);
-      }catch(err){ boardOl.innerHTML = `<li class="warn">${err.message}</li>`; }
-    });
-
-    $('btnPlacarGeral').addEventListener('click', async ()=>{
-      boardBox.hidden = false; boardTitle.textContent = 'Placar — Geral'; boardOl.innerHTML = '<li class="helper">Carregando…</li>';
-      try{
-        const res = await fetch(`${API_BASE}?route=leaderboard`);
-        const j = await res.json();
-        if(!res.ok) throw new Error(j.error||'Falha ao carregar placar');
-        renderBoard(j.rows);
-      }catch(err){ boardOl.innerHTML = `<li class="warn">${err.message}</li>`; }
-    });
-
-    function renderBoard(rows){
-      if(!rows || !rows.length){ boardOl.innerHTML = '<li>Ninguém pontuou ainda 🙃</li>'; return; }
-      boardOl.innerHTML = rows.map(r=>`<li><strong>${escapeHtml(r.name)}</strong> — ${r.points} pts</li>`).join('');
-    }
-
-    function escapeHtml(s){
-      return String(s||'').replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
-    }
-
-    loadRound();
+    boot();
   </script>
 </body>
 </html>
