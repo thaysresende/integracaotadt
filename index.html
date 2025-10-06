@@ -201,16 +201,21 @@
       if(!data||!data.roundId) throw new Error('Resposta inválida');
       return data;
     }
-    async function submitGuess({roundId,name,guess}){
-      const res=await fetch(`${API_BASE}?route=submit`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({roundId,name,guess})
-      });
-      const data=await res.json().catch(()=> ({}));
-      if(!res.ok||data.error) throw new Error(data.error||'Falha ao enviar palpite');
-      return data;
-    }
+
+async function submitGuess({ name, guess }) {
+  const res = await fetch(`${API_BASE}?route=submit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, guess })   // <-- sem roundId
+  });
+
+  // Apps Script sempre responde 200, então checamos "error" no JSON
+  let data = {};
+  try { data = await res.json(); } catch {}
+  if (data.error) throw new Error(data.error);
+  return data;  // { ok, roundId, isCorrect, points }
+}
+
     async function fetchCollaborators(){
       const res=await fetch(COLABS_URL,{cache:'no-store'});
       if(!res.ok) throw new Error('Não foi possível carregar a lista de colaboradores');
@@ -281,7 +286,7 @@
 
       $sendBtn.disabled=true;
       try{
-        const resp=await submitGuess({roundId,name:userName,guess});
+        const resp = await submitGuess({ name: userName, guess });
         localStorage.setItem(LS_GUESS(roundId,userName),'1');
         setSentUI(true);
         toast(resp.isCorrect ? `Acertou! (+${resp.points})` : `Recebido! (+${resp.points})`);
