@@ -24,7 +24,6 @@
     .sent{margin-top:10px;color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:6px;justify-content:center}
     .sent.ok{color:var(--ok)}
     .rules{margin-top:28px;font-size:12.5px;color:#374151}
-    /* Modal */
     .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
     .modal{width:680px;max-width:95vw;background:#fff;border-radius:16px;padding:18px;box-shadow:0 15px 40px rgba(0,0,0,.25)}
     .modal h2{margin:0 0 8px;font-size:18px}
@@ -36,9 +35,7 @@
     .pill{font-size:11px;background:#eef2ff;color:#3730a3;padding:2px 8px;border-radius:999px}
     .btn{padding:10px 14px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
     .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
-    /* Toast + loader */
     .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111827;color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;display:none;z-index:60}
-    .spinner{width:72px;height:72px;display:inline-block;background:url('data:image/gif;base64,R0lGODlhIAAgAPQAAP///wAAAM7OzqamppKSkoCAgN7e3sPDw5mZmY+Pj9nZ2bi4uHx8fICAgKOjo+Li4ra2tpCQkJ+fn9DQ0K+vr4SEhObm5vj4+P///wAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAABcALAAAAAAgACAAAAVt4CeOZGmeaKqubOu+cCzPdG2fQJADQhBICjQqkQqgVhCgkQJt0bHhC7n8wQIw1m1oAYa8z2XHACkCEgkEJ6FvQqQwRrAqFJ6BV3gQk8iCkWgkQhC5Dk8qT0BgQmJgJgJH5kJQwGFBqBHF0GAgA7') center/contain no-repeat}
     .helper{font-size:11.5px;color:#6b7280;margin-top:6px}
   </style>
 </head>
@@ -47,7 +44,7 @@
     <div class="card" role="region" aria-labelledby="title">
       <div class="img-wrap" id="imgWrap" aria-live="polite">
         <img id="photo" src="" alt="Foto da rodada" style="display:none" />
-        <div id="loader" class="spinner" aria-label="Carregando imagem"></div>
+        <img id="loader" src="./loading.gif" alt="Carregando imagem" />
       </div>
 
       <div class="title" id="title">Quem sou eu?</div>
@@ -63,7 +60,7 @@
           <button id="sendBtn" type="submit">enviar</button>
         </div>
         <datalist id="namesList"></datalist>
-        <div class="helper">Use Enter para enviar. O autocompletar usa a mesma lista de colaboradores.</div>
+        <div class="helper">O autocompletar usa a mesma lista de colaboradores.</div>
       </form>
 
       <div id="sentInfo" class="sent" style="display:none">
@@ -79,7 +76,7 @@
     </div>
   </div>
 
-  <!-- Modal de seleção de colaborador -->
+  <!-- Modal de seleção -->
   <div id="modalBackdrop" class="modal-backdrop" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <h2 id="modalTitle">Escolha seu nome</h2>
@@ -99,10 +96,10 @@
 
   <script>
     /* ===== CONFIG ===== */
-    const API_BASE   = 'https://script.google.com/macros/s/AKfycbxQa8zEGfYoTK1og8QPtJeRynT4wMU4g86KpA2-bOkEJrj16c3_5IgNwHrCJvX_SBznyg/exec'; // <- ajuste
-    // ENDPOINTS: GET  `${API_BASE}?route=current`  -> { roundId, imageUrl }
-    //            POST `${API_BASE}?route=submit`   -> { ok, roundId, isCorrect, points } | { error }
-    const COLABS_URL = 'colabs.json'; // ou URL pública com ["Nome 1", "Nome 2", ...]
+    const API_BASE   = 'https://script.google.com/macros/s/AKfycbxQa8zEGfYoTK1og8QPtJeRynT4wMU4g86KpA2-bOkEJrj16c3_5IgNwHrCJvX_SBznyg/exec'; // ajuste aqui
+    // GET  `${API_BASE}?route=current` -> { roundId, imageUrl }
+    // POST `${API_BASE}?route=submit`  -> body { roundId, name, guess }
+    const COLABS_URL = 'https://thaysresende.github.io/integracaotadt/colabs.json'; // relativo à mesma pasta
 
     /* ===== STORAGE KEYS ===== */
     const LS_USER = 'aq_user_name';
@@ -179,14 +176,18 @@
       try{
         const { roundId:rid, imageUrl } = await fetchRound();
         roundId=String(rid);
-        // desbloqueia se for nova rodada (chave local é por rodada+nome)
         setSentUI(false);
         if(isAlreadySent()) setSentUI(true);
 
         try{
           const ok=await preLoadImg(imageUrl);
-          $photo.src=ok; $photo.style.display='block'; $loader.style.display='none';
-        }catch{ /* mantém loader */ }
+          $photo.src=ok;
+          $photo.style.display='block';
+          $loader.style.display='none';  // esconde loading.gif
+        }catch{
+          // mantém o loading.gif visível
+          toast('Carregando imagem da rodada…');
+        }
       }catch(e){ console.error(e); toast('Erro ao carregar rodada.'); }
 
       if(!userName) openModal();
@@ -213,10 +214,8 @@
         const resp=await submitGuess({roundId,name:userName,guess});
         localStorage.setItem(LS_GUESS(roundId,userName),'1');
         setSentUI(true);
-        const okMsg = resp.isCorrect ? `Acertou! (+${resp.points})` : `Recebido! (+${resp.points})`;
-        toast(okMsg);
+        toast(resp.isCorrect ? `Acertou! (+${resp.points})` : `Recebido! (+${resp.points})`);
       }catch(err){
-        // se backend já registrou (ex.: corrida), bloqueia local também
         if(String(err.message||'').includes('já respondeu')){ localStorage.setItem(LS_GUESS(roundId,userName),'1'); setSentUI(true); }
         else{ $sendBtn.disabled=false; }
         toast(err.message||'Erro ao enviar palpite.');
