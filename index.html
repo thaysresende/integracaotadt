@@ -293,7 +293,7 @@ async function submitGuess({ name, guess }) {
         const resp = await submitGuess({ name: userName, guess });
         localStorage.setItem(LS_GUESS(roundId,userName),'1');
         setSentUI(true);
-        toast(resp.isCorrect ? `Acertou! (+${resp.points})` : `Recebido! (+${resp.points})`);
+        toast(resp.isCorrect ? `Acertou! (+${resp.points})` : `Recebido!`);
       }catch(err){
         if(String(err.message||'').includes('já respondeu')){ localStorage.setItem(LS_GUESS(roundId,userName),'1'); setSentUI(true); }
         else{ $sendBtn.disabled=false; }
